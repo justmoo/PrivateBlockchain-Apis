@@ -50,10 +50,14 @@ class BlockController {
         let self = this;
         this.app.get("/block/:index",async (req, res) => {
             // returns any block if its in the blockchain height  
+                if(req.params.index > await self.bc.getBlockHeight()){
+                        res.send("this block doesn't exist");
+                }else{
                 let block = await self.bc.getBlock(req.params.index);
                 console.log(block)
                 
-            res.send(block);
+                 res.send(block);
+                }
         });
     }
 
