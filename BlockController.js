@@ -1,5 +1,6 @@
 const SHA256 = require('crypto-js/sha256');
-const BlockClass = require('./Block.js');
+const Block = require('./Block.js');
+const blockchain =require('./BlockChain');
 
 /**
  * Controller Definition to encapsulate routes to work with blocks
@@ -13,37 +14,46 @@ class BlockController {
     constructor(app) {
         this.app = app;
         this.blocks = [];
-        this.initGenesisBlock();
+        //this.initGenesisBlock();
         this.getBlockByIndex();
         this.postNewBlock();
         this.getTheBlockchain();
+        this.bc = new blockchain.Blockchain();
+        
+        
     }
 
-    initGenesisBlock(){
-        if(this.blocks.length===0){
-            let newBlock = new BlockClass.Block("First block in the chain - Genesis block");
-                newBlock.height = 0;
-                newBlock.hash = SHA256(JSON.stringify(newBlock)).toString();
-                newBlock.previousBlockHash = "0x";
-                this.blocks.push(newBlock);
-        }
+    // initGenesisBlock(){
+    //     if(this.blocks.length===0){
+    //         let newBlock = new BlockClass.Block("First block in the chain - Genesis block");
+    //             newBlock.height = 0;
+    //             newBlock.hash = SHA256(JSON.stringify(newBlock)).toString();
+    //             newBlock.previousBlockHash = "0x";
+    //             this.blocks.push(newBlock);
+    //     }
 
-    }
+    // }
     
-      // for testing purposes :)
-     getTheBlockchain(){
-        this.app.get("/blocks", (req, res) => {
+      //for testing purposes :)
+      async getTheBlockchain(){
+        let self = this;
+        this.app.get("/blocks", async (req, res) => {
             // return the whole blockchain
-            res.send(this.blocks);
+           let blockchain =await self.bc.getBlockchain();
+            res.send(blockchain);
         });
      }
    
      // Implement a GET Endpoint to retrieve a block by index, url: "/block/:index"
      // Working perfectly 
-     getBlockByIndex() {
-        this.app.get("/block/:index", (req, res) => {
+      async getBlockByIndex() {
+        let self = this;
+        this.app.get("/block/:index",async (req, res) => {
             // returns any block if its in the blockchain height  
-            res.send(this.blocks[req.params.index]);
+                let block = await self.bc.getBlock(req.params.index);
+                console.log(block)
+                
+            res.send(block);
         });
     }
 
@@ -51,15 +61,12 @@ class BlockController {
     // Implement a POST Endpoint to add a new Block, url: "/block"
     // checks if the request has "body" then adds it to the blockchain 
     postNewBlock() {
-        this.app.post("/block", (req, res) => {
+        this.app.post("/block",async (req, res) => {
             if(req.body.body == null){
                 res.send("can't send an empty block")
             }else{
-            let newBlock = new BlockClass.Block(req.body.body);
-                newBlock.height = this.blocks.length;
-                newBlock.previousBlockHash = this.blocks[this.blocks.length-1].hash;
-                newBlock.hash = SHA256(JSON.stringify(newBlock)).toString();
-                this.blocks.push(newBlock);
+                let newBlock = new Block.Block(req.body.body);
+                await this.bc.addBlock(newBlock);//this.blocks.push(newBlock);
                 res.json(newBlock);
             }
         });
